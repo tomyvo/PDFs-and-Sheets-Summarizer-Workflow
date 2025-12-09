@@ -1,0 +1,589 @@
+{
+  "name": "PDFs und Sheets zusammenfassen",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1VNJQt2QMm8FmFC1IPijHIzqGpff4aoyH",
+          "mode": "list",
+          "cachedResultName": "n8n_test2",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1VNJQt2QMm8FmFC1IPijHIzqGpff4aoyH"
+        },
+        "event": "fileCreated",
+        "options": {
+          "fileType": "all"
+        }
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        376
+      ],
+      "id": "d34e0a12-3a8c-418c-8ef6-e97d5052239b",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "szLc3bZ5m66uacgU",
+          "name": "ducnguyen0066@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mimeType }}",
+                    "rightValue": "pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "rule-pdf"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PDF"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mimeType }}",
+                    "rightValue": "spreadsheet",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "rule-xls"
+                  },
+                  {
+                    "leftValue": "={{ $json.name }}",
+                    "rightValue": ".xlsx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "endsWith"
+                    },
+                    "id": "rule-xlsx"
+                  },
+                  {
+                    "leftValue": "={{ $json.name }}",
+                    "rightValue": ".xls",
+                    "operator": {
+                      "type": "string",
+                      "operation": "endsWith"
+                    },
+                    "id": "rule-xls2"
+                  }
+                ],
+                "combinator": "or"
+              },
+              "renameOutput": true,
+              "outputKey": "Sheets"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        224,
+        360
+      ],
+      "id": "6edbb763-075e-4042-8e01-ca9dc36cb3ce",
+      "name": "Route by File Type"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        280
+      ],
+      "id": "2e85ab9c-7a12-4206-90d2-601b7df79b3c",
+      "name": "Extract from PDF"
+    },
+    {
+      "parameters": {
+        "operation": "xls",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        472
+      ],
+      "id": "1da0a978-ffe8-43cf-bf80-55d6d5d6cfb0",
+      "name": "Extract from Excel"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        808,
+        600
+      ],
+      "id": "8cd5656d-b634-466c-aeeb-5310c85939a4",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        680,
+        600
+      ],
+      "id": "a9b8f4b5-9555-46ba-a3c5-c1a1455747c7",
+      "name": "Embeddings HuggingFace Inference",
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "opc3szj4sA9s6Xkk",
+          "name": "HuggingFaceApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        912
+      ],
+      "id": "74ec66cc-3bfb-49dc-96e6-db5747d66b7f",
+      "name": "When chat message received",
+      "webhookId": "fc9e306c-17c7-4457-a6bd-db85c141f04f"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "You are an AI agent specialized in processing and summarizing documents. Your task is to read PDF files and Excel spreadsheets from the connected Google Drive folder, extract their contents, and generate clear, concise summaries. Always structure your output in a way that is easy to understand, highlighting key information, tables, or data points when relevant. Do not include unnecessary details, and do not guess when information is missing or unclear — instead, politely indicate that the content could not be fully interpreted. Keep your tone professional yet approachable, suitable for business or academic contexts."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        280,
+        912
+      ],
+      "id": "75ffd1b1-7938-41d7-90e7-de381b3ccab8",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "meta-llama/llama-3.3-70b-instruct:free",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        224,
+        1136
+      ],
+      "id": "2db583b5-4a45-462f-8f92-fe1726965dde",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "Vo8xfcck05mybwx6",
+          "name": "christiandurenhandy@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        1136
+      ],
+      "id": "a82037e3-d303-4243-a7c2-cb9f5a6fad30",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "hzSXeWazXGR2rjxm",
+          "name": "tomy.vo0000@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "=This Supabase Vector Database stores embeddings of documents extracted from PDFs and Excel spreadsheets. The AI agent must use this database for all semantic search and retrieval tasks, allowing it to quickly find relevant information from past documents. Each entry corresponds to a section, table, or key content from the original document, encoded into vector form to support contextual queries and document summarization tasks.",
+        "tableName": "documents",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        1136
+      ],
+      "id": "19dcf667-425b-4fe8-bc76-e0d43c433723",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "AAus5k9m5PLdcdaE",
+          "name": "tomy.vo0000@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        560,
+        1344
+      ],
+      "id": "6e29f9f9-521a-44a4-aa78-b0719531158a",
+      "name": "Embeddings HuggingFace Inference1",
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "opc3szj4sA9s6Xkk",
+          "name": "HuggingFaceApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "1egoRdORVhW8nkYpandiCP81EMKIqB5WUf_nTUGZIpBo",
+          "mode": "list",
+          "cachedResultName": "sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1egoRdORVhW8nkYpandiCP81EMKIqB5WUf_nTUGZIpBo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1042634890,
+          "mode": "list",
+          "cachedResultName": "Tabellenblatt2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1egoRdORVhW8nkYpandiCP81EMKIqB5WUf_nTUGZIpBo/edit#gid=1042634890"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -56
+      ],
+      "id": "ad9e4b3f-00d9-4ba7-9b4e-53ecb3fffaa1",
+      "name": "Google Sheets Trigger",
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "FLlVneHOfv1KeDkD",
+          "name": "ducnguyen0066@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        224,
+        -56
+      ],
+      "id": "fc4e4289-0407-489e-8b75-f3ba3416ba88",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        -160
+      ],
+      "id": "a9668aa5-8c02-4bb4-adde-1e06e9ad75c5",
+      "name": "Vector Store for Sheets",
+      "credentials": {
+        "supabaseApi": {
+          "id": "AAus5k9m5PLdcdaE",
+          "name": "tomy.vo0000@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": "documents",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        672,
+        376
+      ],
+      "id": "e29f566d-e957-4cc0-a941-800c0d07aaa3",
+      "name": "Vector Store for PDFs",
+      "credentials": {
+        "supabaseApi": {
+          "id": "AAus5k9m5PLdcdaE",
+          "name": "tomy.vo0000@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "sentence-transformers/all-MiniLM-L6-v2",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        520,
+        64
+      ],
+      "id": "4676a6e7-6fff-4c8c-a4d7-7b97aaa49c21",
+      "name": "Embeddings HuggingFace Inference2",
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "opc3szj4sA9s6Xkk",
+          "name": "HuggingFaceApi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Route by File Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by File Type": {
+      "main": [
+        [
+          {
+            "node": "Extract from PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from Excel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from PDF": {
+      "main": [
+        [
+          {
+            "node": "Vector Store for PDFs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from Excel": {
+      "main": [
+        [
+          {
+            "node": "Vector Store for PDFs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HuggingFace Inference1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HuggingFace Inference": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Vector Store for PDFs",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Vector Store for PDFs",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Vector Store for Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HuggingFace Inference2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Vector Store for Sheets",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "884451b3-efc5-41f8-893b-d114c64a925f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e7f6140b0c370a3fbf2dfb84728facd0cff7eef80d4c4c944492dca59d046dbd"
+  },
+  "id": "5FdX3MkktcoZdAQg",
+  "tags": []
+}
